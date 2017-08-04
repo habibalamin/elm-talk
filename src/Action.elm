@@ -1,11 +1,12 @@
 module Action exposing (..)
 
+import Keyboard exposing (..)
+
 
 type alias Url =
     String
 
 
 type Action
-    = LoadSlide Url
-    | AdvanceSlide
-    | RetractSlide
+    = HitKey KeyCode
+    | LoadPresentation Url

@@ -1,61 +1,62 @@
 module Model.Slide
     exposing
         ( Slide
-        , title
-        , previousItems
-        , currentItem
-        , upcomingItems
         , blankSlide
         , slide
+        , advanceSlide
         )
 
 import Model.SlideItem exposing (..)
 
 
-type Slide
-    = Slide
-        { title : String
-        , previousItems : List SlideItem
-        , currentItem : Maybe SlideItem
-        , upcomingItems : List SlideItem
-        }
-
-
-title : Slide -> String
-title (Slide { title }) =
-    title
-
-
-previousItems : Slide -> List SlideItem
-previousItems (Slide { previousItems }) =
-    previousItems
-
-
-currentItem : Slide -> Maybe SlideItem
-currentItem (Slide { currentItem }) =
-    currentItem
-
-
-upcomingItems : Slide -> List SlideItem
-upcomingItems (Slide { upcomingItems }) =
-    upcomingItems
+type alias Slide =
+    { title : String
+    , previousItems : List SlideItem
+    , currentItem : Maybe SlideItem
+    , upcomingItems : List SlideItem
+    }
 
 
 blankSlide : Slide
 blankSlide =
-    Slide
-        { title = ""
-        , previousItems = []
-        , currentItem = Nothing
-        , upcomingItems = []
-        }
+    { title = ""
+    , previousItems = []
+    , currentItem = Nothing
+    , upcomingItems = []
+    }
 
 
 slide : String -> List SlideItem -> Slide
 slide title items =
-    Slide
-        { title = title
-        , previousItems = []
-        , currentItem = Nothing
-        , upcomingItems = items
-        }
+    { title = title
+    , previousItems = []
+    , currentItem = Nothing
+    , upcomingItems = items
+    }
+
+
+advanceSlide : Slide -> Slide
+advanceSlide slide =
+    case slide.currentItem of
+        Nothing ->
+            nextItem slide
+
+        Just item ->
+            if bulletsAreRemaining item then
+                { slide | currentItem = Just <| advanceBulletList item }
+            else
+                nextItem slide
+
+
+nextItem : Slide -> Slide
+nextItem slide =
+    { slide
+        | previousItems = slide.previousItems ++ Maybe.withDefault [] (Maybe.map List.singleton slide.currentItem)
+        , currentItem = List.head slide.upcomingItems
+        , upcomingItems = List.drop 1 slide.upcomingItems
+    }
+
+
+dropFromEnd : Int -> List a -> List a
+dropFromEnd n =
+    List.reverse >> List.drop n >> List.reverse

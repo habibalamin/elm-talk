@@ -1,88 +1,61 @@
 module Model.Presentation
     exposing
-        ( Presentation(..)
-        , previousSlides
-        , currentSlide
-        , upcomingSlides
+        ( Presentation
         , blankPresentation
         , presentation
-        , advanceSlide
-        , retractSlide
+        , advancePresentation
+        , retractPresentation
         )
 
 import Model.Slide exposing (..)
+import Model.SlideItem exposing (..)
 
 
-type Presentation
-    = Presentation
-        { previousSlides : List Slide
-        , currentSlide : Slide
-        , upcomingSlides : List Slide
-        }
-
-
-previousSlides : Presentation -> List Slide
-previousSlides (Presentation { previousSlides }) =
-    previousSlides
-
-
-currentSlide : Presentation -> Slide
-currentSlide (Presentation { currentSlide }) =
-    currentSlide
-
-
-upcomingSlides : Presentation -> List Slide
-upcomingSlides (Presentation { upcomingSlides }) =
-    upcomingSlides
+type alias Presentation =
+    { previousSlides : List Slide
+    , currentSlide : Slide
+    , upcomingSlides : List Slide
+    }
 
 
 blankPresentation : Presentation
 blankPresentation =
-    Presentation
-        { previousSlides = []
-        , currentSlide = blankSlide
-        , upcomingSlides = []
-        }
+    { previousSlides = []
+    , currentSlide = blankSlide
+    , upcomingSlides = []
+    }
 
 
 presentation : List Slide -> Presentation
 presentation slides =
-    Presentation
-        { previousSlides = []
-        , currentSlide = Maybe.withDefault blankSlide <| List.head slides
-        , upcomingSlides = List.drop 1 slides
-        }
+    { previousSlides = []
+    , currentSlide = Maybe.withDefault blankSlide <| List.head slides
+    , upcomingSlides = List.drop 1 slides
+    }
 
 
-advanceSlide : Presentation -> Presentation
-advanceSlide (Presentation { previousSlides, currentSlide, upcomingSlides }) =
-    case List.head upcomingSlides of
-        Nothing ->
-            Presentation
-                { previousSlides = previousSlides
-                , currentSlide = currentSlide
-                , upcomingSlides = upcomingSlides
+advancePresentation : Presentation -> Presentation
+advancePresentation presentation =
+    if not (slideComplete presentation) then
+        { presentation | currentSlide = advanceSlide presentation.currentSlide }
+    else
+        case List.head presentation.upcomingSlides of
+            Nothing ->
+                presentation
+
+            Just slide ->
+                { previousSlides = presentation.previousSlides ++ [ presentation.currentSlide ]
+                , currentSlide = slide
+                , upcomingSlides = List.drop 1 presentation.upcomingSlides
                 }
 
-        Just slide ->
-            if slideItemsRemaining presentation then
-                Presentation
-                    { previousSlides = previousSlides ++ [ currentSlide ]
-                    , currentSlide = slide
-                    , upcomingSlides = List.drop 1 upcomingSlides
-                    }
-            else
-                Presentation
-                    { previousSlides = previousSlides ++ [ currentSlide ]
-                    , currentSlide = slide
-                    , upcomingSlides = List.drop 1 upcomingSlides
-                    }
+
+slideComplete : Presentation -> Bool
+slideComplete presentation =
+    List.isEmpty presentation.currentSlide.upcomingItems
+    && Maybe.withDefault True (Maybe.map slideItemComplete presentation.currentSlide.currentItem)
 
 
-slideItemsRemaining : Presentation -> Bool
-slideItemsRemaining = currentSlide >> upcomingItems >> List.isEmpty
-
-
-retractSlide : Presentation -> Presentation
-retractSlide presentation =
+retractPresentation : Presentation -> Presentation
+retractPresentation presentation =
     presentation

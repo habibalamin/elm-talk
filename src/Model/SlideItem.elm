@@ -1,12 +1,18 @@
 module Model.SlideItem
     exposing
-        ( SlideItem
+        ( SlideItem(..)
+        , blankSubtitle
         , blankParagraph
         , blankBulletList
-        , blankSubtitle
+        , subtitle
         , paragraph
         , bulletList
-        , subtitle
+        , isSubtitle
+        , isParagraph
+        , isBulletList
+        , bulletsAreRemaining
+        , slideItemComplete
+        , advanceBulletList
         , slideItemToHtml
         )
 
@@ -19,24 +25,16 @@ type SlideItem
     | BulletListItem BulletList
 
 
-type BulletList =
-    BulletList
-        { previousBullets : List String
-        , currentBullet : Maybe String
-        , upcomingBullets : List String
-        }
+type alias BulletList =
+    { previousBullets : List String
+    , currentBullet : String
+    , upcomingBullets : List String
+    }
 
 
-previousBullets : BulletList -> List String
-previousBullets (BulletList { previousBullets }) = previousBullets
-
-
-currentBullet : BulletList -> Maybe String
-currentBullet (BulletList { currentBullet }) = currentBullet
-
-
-upcomingBullets : BulletList -> List String
-upcomingBullets (BulletList { upcomingBullets }) = upcomingBullets
+blankSubtitle : SlideItem
+blankSubtitle =
+    Subtitle ""
 
 
 blankParagraph : SlideItem
@@ -47,16 +45,15 @@ blankParagraph =
 blankBulletList : SlideItem
 blankBulletList =
     BulletListItem
-        (BulletList
-            { previousBullets = []
-            , currentBullet = Nothing
-            , upcomingBullets = []
-            })
+        { previousBullets = []
+        , currentBullet = ""
+        , upcomingBullets = []
+        }
 
 
-blankSubtitle : SlideItem
-blankSubtitle =
-    Subtitle ""
+subtitle : String -> SlideItem
+subtitle =
+    Subtitle
 
 
 paragraph : String -> SlideItem
@@ -64,19 +61,75 @@ paragraph =
     Paragraph
 
 
-bulletList : List String -> SlideItem
-bulletList bullets =
+bulletList : String -> List String -> SlideItem
+bulletList firstBullet bullets =
     BulletListItem
-        (BulletList
-            { previousBullets = []
-            , currentBullet = Nothing
-            , upcomingBullets = bullets
-            })
+        { previousBullets = []
+        , currentBullet = firstBullet
+        , upcomingBullets = bullets
+        }
 
 
-subtitle : String -> SlideItem
-subtitle =
-    Subtitle
+isSubtitle : SlideItem -> Bool
+isSubtitle item =
+    case item of
+        Subtitle _ ->
+            True
+
+        _ ->
+            False
+
+
+isParagraph : SlideItem -> Bool
+isParagraph item =
+    case item of
+        Paragraph _ ->
+            True
+
+        _ ->
+            False
+
+
+isBulletList : SlideItem -> Bool
+isBulletList item =
+    case item of
+        BulletListItem _ ->
+            True
+
+        _ ->
+            False
+
+
+bulletsAreRemaining : SlideItem -> Bool
+bulletsAreRemaining item =
+    case item of
+        BulletListItem bullets ->
+            List.length bullets.upcomingBullets > 0
+
+        _ ->
+            False
+
+
+slideItemComplete : SlideItem -> Bool
+slideItemComplete = not << bulletsAreRemaining
+
+
+advanceBulletList : SlideItem -> SlideItem
+advanceBulletList item =
+    case item of
+        BulletListItem bullets ->
+            case List.head bullets.upcomingBullets of
+                Nothing -> BulletListItem bullets
+                Just bullet ->
+                    BulletListItem
+                        { bullets |
+                          previousBullets = bullets.previousBullets ++ [ bullets.currentBullet ]
+                        , currentBullet = bullet
+                        , upcomingBullets = List.drop 1 bullets.upcomingBullets
+                        }
+
+        _ ->
+            item
 
 
 slideItemToHtml : SlideItem -> Html a
@@ -88,13 +141,8 @@ slideItemToHtml slideItem =
         Paragraph body ->
             p [] [ text body ]
 
-        BulletListItem (BulletList { previousBullets, currentBullet, upcomingBullets }) ->
-            case currentBullet of
-                Nothing ->
-                    listToUl previousBullets
-
-                Just bullet ->
-                    listToUl <| previousBullets ++ [ bullet ]
+        BulletListItem bullets ->
+            listToUl <| bullets.previousBullets ++ [ bullets.currentBullet ]
 
 
 listToUl : List String -> Html a
@@ -104,4 +152,4 @@ listToUl list =
 
 bulletToLi : String -> Html a
 bulletToLi =
-    text >> flip (::) [] >> li []
+    text >> List.singleton >> li []
