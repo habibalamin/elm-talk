@@ -45,7 +45,9 @@ examplePresentation =
             [ paragraph "This is an Elm talk given using elm-talk. In this talk, we shall:"
             , bulletList
                 "Demonstrate the capabilities of the app."
-                [ "Look at the code which powers the app." ]
+                [ "Look at the code which powers the app."
+                , "Talk about Elm and functional programming in the ML family in general"
+                ]
             ]
         , slide
             "Let's Demo It!"
